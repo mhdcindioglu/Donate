@@ -8,7 +8,6 @@ namespace Donate.Data;
 public class DonateDbContext(DbContextOptions<DonateDbContext> options) : IdentityDbContext<AppUser, AppRole, int>(options)
 {
     public DbSet<Project> Projects { get; set; }
-    //public DbSet<TaskApplication> Applications { get; set; }
     public DbSet<ProjectTask> Tasks { get; set; }
     public DbSet<Donation> Donations { get; set; }
     public DbSet<DonationItem> DonationItems { get; set; }
@@ -21,7 +20,9 @@ public class DonateDbContext(DbContextOptions<DonateDbContext> options) : Identi
     public DbSet<ViewProject> ViewProjects { get; set; }
     public DbSet<ViewProjectTask> ViewProjectTasks { get; set; }
     public DbSet<ViewDonationItem> ViewDonationItems { get; set; }
-
+    public DbSet<ViewDonation> ViewDonations { get; set; }
+    public DbSet<ViewDonationDetail> ViewDonationDetails { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -52,6 +53,8 @@ public class DonateDbContext(DbContextOptions<DonateDbContext> options) : Identi
         builder.Entity<ViewProject>().ToView("ViewProjects").HasKey(x => x.Id);
         builder.Entity<ViewProjectTask>().ToView("ViewProjectTasks").HasKey(x => x.Id);
         builder.Entity<ViewDonationItem>().ToView("ViewDonationItems").HasKey(x => x.Id);
+        builder.Entity<ViewDonation>().ToView("ViewDonations").HasKey(x => x.Id);
+        builder.Entity<ViewDonationDetail>().ToView("ViewDonationDetails").HasKey(x => x.Id);
 
         Seed(builder);
     }

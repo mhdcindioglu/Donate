@@ -6,10 +6,10 @@
 @using System.Linq.Dynamic.Core
 @inject IJSRuntime JS
 
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Donor")]
 
 <div class="header mb-3">
-    <h1 class="header-title">Donation Items list</h1>
+    <h1 class="header-title">Donations list</h1>
     <div class="header-btns">
         <button class="btn btn-link me-1" @onclick="OnStateChanged">
             @if (showDisactive)
@@ -29,27 +29,26 @@
 <RadzenDataGrid @ref="DG" AllowFiltering="true" AllowAlternatingRows="true" FilterMode="FilterMode.Simple" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
                 Data="@projects" @bind-Value=@selectedProjects LoadData="LoadData" IsLoading="isLoading" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Count="@count" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single">
     <Columns>
-        <RadzenDataGridColumn Property="@nameof(ViewDonationItem.Project)" Title="Project" Width="auto" TextAlign="TextAlign.Start" />
-        <RadzenDataGridColumn Property="@nameof(ViewDonationItem.ItemType)" Title="Item Type" Width="auto" TextAlign="TextAlign.Start" />
-        <RadzenDataGridColumn Property="@nameof(ViewDonationItem.ItemName)" Title="Name" Width="auto" TextAlign="TextAlign.Center" />
-        <RadzenDataGridColumn Title="Price" Width="auto" TextAlign="TextAlign.Center">
-            <Template Context="task">
-                @($"{task.Price:C2}")
+        <RadzenDataGridColumn Property="@nameof(ViewDonation.Donor)" Title="Donor" Width="auto" TextAlign="TextAlign.Start" />
+        <RadzenDataGridColumn Title="Date" Width="auto" TextAlign="TextAlign.Start">
+            <Template Context="donation">
+                @($"{donation.DonationDate:yyyy/MM/dd}")
             </Template>
         </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(ViewDonation.Notes)" Title="Notes" Width="auto" TextAlign="TextAlign.Center" />
         <RadzenDataGridColumn Filterable="false" Sortable="false" Width="auto" TextAlign="TextAlign.Right">
-            <Template Context="task">
+            <Template Context="donation">
                 <AuthorizeView Roles="Admin">
                     <Authorized>
                         <div Class="text-nowrap text-right">
-                            @if (task.Active == true)
+                            @if (donation.Active == true)
                             {
-                                <button class="btn btn-link text-primary btn-sm small px-1 py-0 me-2" @onclick="@(async() => await Update(task))" title="Update"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button class="btn btn-link text-muted btn-sm px-1 py-0 small" @onclick="@(async() => await DisActive(task))" title="Disactive"><i class="fa-regular fa-square"></i></button>
+                                <button class="btn btn-link text-primary btn-sm small px-1 py-0 me-2" @onclick="@(async() => await Update(donation))" title="Update"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button class="btn btn-link text-muted btn-sm px-1 py-0 small" @onclick="@(async() => await DisActive(donation))" title="Disactive"><i class="fa-regular fa-square"></i></button>
                             }
                             else
                             {
-                                <button class="btn btn-link text-success btn-sm px-1 py-0 small" @onclick="@(async() => await Active(task))" title="Active"><i class="fa-regular fa-square-check"></i></button>
+                                <button class="btn btn-link text-success btn-sm px-1 py-0 small" @onclick="@(async() => await Active(donation))" title="Active"><i class="fa-regular fa-square-check"></i></button>
                             }
                         </div>
                     </Authorized>
@@ -61,10 +60,10 @@
 
 @code {
     [CascadingParameter] public IModalService Modal { get; set; } = default!;
-    List<ViewDonationItem> projects = [];
-    IList<ViewDonationItem> selectedProjects = [];
+    List<ViewDonation> projects = [];
+    IList<ViewDonation> selectedProjects = [];
     private ClaimsPrincipal CurUser = default!;
-    private RadzenDataGrid<ViewDonationItem> DG = default!;
+    private RadzenDataGrid<ViewDonation> DG = default!;
     bool isLoading;
     int count;
     bool showDisactive;
@@ -90,7 +89,7 @@
         await Task.Yield();
 
         using var db = await ContextFactory.CreateDbContextAsync();
-        var query = db.ViewDonationItems.Where(x => showDisactive || x.Active == true).AsQueryable();
+        var query = db.ViewDonations.Where(x => showDisactive || x.Active == true).AsQueryable();
 
         if (!string.IsNullOrEmpty(args.Filter))
             query = query.Where(args.Filter);
@@ -118,9 +117,9 @@
         }
     }
 
-    async Task Update(ViewDonationItem item)
+    async Task Update(ViewDonation item)
     {
-        var parameters = new ModalParameters() { { nameof(DonationItemModal.DonationItem), new ViewDonationItem { Id = item.Id } } };
+        var parameters = new ModalParameters() { { nameof(DonationItemModal.DonationItem), new ViewDonation { Id = item.Id } } };
         var modal = Modal.Show<DonationItemModal>("Update donation item", parameters, new ModalOptions { DisableBackgroundCancel = false, Size = ModalSize.Large, });
         var result = await modal.Result;
         if (!result.Cancelled)
@@ -133,10 +132,10 @@
         }
     }
 
-    async Task DisActive(ViewDonationItem project) => await UserActive(project, false);
-    async Task Active(ViewDonationItem project) => await UserActive(project, true);
+    async Task DisActive(ViewDonation project) => await UserActive(project, false);
+    async Task Active(ViewDonation project) => await UserActive(project, true);
 
-    async Task UserActive(ViewDonationItem project, bool state)
+    async Task UserActive(ViewDonation project, bool state)
     {
         using var db = await ContextFactory.CreateDbContextAsync();
         var userInDb = await db.Tasks.FirstOrDefaultAsync(x => x.Id == project.Id);

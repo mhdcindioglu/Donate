@@ -46,17 +46,17 @@
 </EditForm>
 
 @code {
-    [Parameter] public DonationItem Item { get; set; } = new();
+    [Parameter] public DonationItem DonationItem { get; set; } = new();
     [CascadingParameter] public BlazoredModalInstance ModalInstance { get; set; } = default!;
     private DonationItem _Item = new();
     FormValidation FormValidation = default!;
 
     protected override async void OnInitialized()
     {
-        if (Item.Id > 0)
+        if (DonationItem.Id > 0)
         {
             using var db = await ContextFactory.CreateDbContextAsync();
-            var task = await db.DonationItems.FirstOrDefaultAsync(x => x.Id == Item.Id);
+            var task = await db.DonationItems.FirstOrDefaultAsync(x => x.Id == DonationItem.Id);
             if (task == null)
             {
                 await ModalInstance.CloseAsync(ModalResult.Cancel("NotFound"));
@@ -64,11 +64,11 @@
             }
             else
             {
-                Item = task.Clone<DonationItem>()!;
+                DonationItem = task.Clone<DonationItem>()!;
             }
         }
 
-        _Item = Item.Clone()!;
+        _Item = DonationItem.Clone()!;
 
         StateHasChanged();
     }

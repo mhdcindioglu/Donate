@@ -16,4 +16,5 @@ public class Donation
 
     public ICollection<DonationDetail> Details { get; set; } = [];
 
+    public bool Active { get; set; }
 }

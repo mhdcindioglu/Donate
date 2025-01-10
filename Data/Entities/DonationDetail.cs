@@ -16,4 +16,5 @@ public class DonationDetail
 
     [MaxLength(512)]
     public string? Notes { get; set; }
+    public bool Active { get; set; }
 }

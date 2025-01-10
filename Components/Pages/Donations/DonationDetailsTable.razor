@@ -1,0 +1,170 @@
+﻿@using Donate.Data.Models
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
+@using System.Linq.Dynamic.Core
+@inject IJSRuntime JS
+
+<div class="header mb-3">
+    <h1 class="header-title">Tasks list</h1>
+    <div class="header-btns">
+        @if (Donation != null)
+        {
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-link me-1" @onclick="OnStateChanged">
+                        @if (showDisactive)
+                        {
+                            <span class="text-success"><i class="fa-solid fa-eye fa-xl"></i></span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="fa-solid fa-eye-slash fa-xl"></i></span>
+                        }
+                    </button>
+                </Authorized>
+            </AuthorizeView>
+            <button class="btn btn-primary me-1" @onclick="Refresh"><i class="fa-solid fa-rotate"></i></button>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <button class="btn btn-success" @onclick="NewProject"><i class="fa-solid fa-plus"></i></button>
+                </Authorized>
+            </AuthorizeView>
+        }
+    </div>
+</div>
+
+<RadzenDataGrid @ref="DG" AllowFiltering="true" AllowAlternatingRows="true" FilterMode="FilterMode.Simple" AllowSorting="true" PageSize="20" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Center" ShowPagingSummary="true"
+                Data="@donationDetails" @bind-Value=@selecteddonationDetails LoadData="LoadData" IsLoading="isLoading" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" Count="@count" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single">
+    <Columns>
+        <RadzenDataGridColumn Property="@nameof(ViewDonationDetail.DonationItem)" Title="Item" Width="auto" TextAlign="TextAlign.Start" />
+        <RadzenDataGridColumn Property="@nameof(ViewDonationDetail.Qty)" Title="Qty" FormatString="N" Width="auto" TextAlign="TextAlign.End" />
+        <RadzenDataGridColumn Property="@nameof(ViewDonationDetail.Price)" Title="Price" FormatString="C2" Width="auto" TextAlign="TextAlign.End" />
+        <RadzenDataGridColumn Property="@nameof(ViewDonationDetail.Total)" Title="Total" FormatString="C2" Width="auto" TextAlign="TextAlign.End" />
+        <RadzenDataGridColumn Filterable="false" Sortable="false" Width="auto" TextAlign="TextAlign.End">
+            <Template Context="detail">
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <div class="text-nowrap text-right">
+                            @if (detail.Active == true)
+                            {
+                                <button class="btn btn-link text-primary btn-sm small px-1 py-0 me-2" @onclick="@(async() => await Update(detail))" title="Update"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button class="btn btn-link text-muted btn-sm px-1 py-0 small" @onclick="@(async() => await DisActive(detail))" title="Disactive"><i class="fa-regular fa-square"></i></button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-link text-success btn-sm px-1 py-0 small" @onclick="@(async() => await Active(detail))" title="Active"><i class="fa-regular fa-square-check"></i></button>
+                            }
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </Template>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+
+@code {
+    [CascadingParameter] public IModalService Modal { get; set; } = default!;
+    List<ViewDonationDetail> donationDetails = [];
+    IList<ViewDonationDetail> selecteddonationDetails = [];
+    private ClaimsPrincipal CurUser = default!;
+    private RadzenDataGrid<ViewDonationDetail> DG = default!;
+    bool isLoading;
+    int count;
+    bool showDisactive;
+    ViewDonation? Donation;
+
+    override protected async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        var auth = await Auth.GetAuthenticationStateAsync();
+        CurUser = auth.User;
+    }
+
+    public async Task SetDonation(ViewDonation donation)
+    {
+        Donation = donation;
+        await DG.Reload();
+    }
+
+    async Task LoadData(LoadDataArgs args)
+    {
+        if (Donation != null)
+        {
+            isLoading = true;
+
+            await Task.Yield();
+
+            using var db = await ContextFactory.CreateDbContextAsync();
+            var query = db.ViewDonationDetails.Where(x => x.DonationId == Donation.Id && (showDisactive || x.Active == true)).AsQueryable();
+
+            if (!string.IsNullOrEmpty(args.Filter))
+                query = query.Where(args.Filter);
+
+            if (!string.IsNullOrEmpty(args.OrderBy))
+                query = query.OrderBy(args.OrderBy);
+
+            count = query.Count();
+
+            donationDetails = query.Skip(args.Skip!.Value).Take(args.Top!.Value).ToList();
+
+            isLoading = false;
+        }
+    }
+
+    async Task Refresh() => await DG.Reload();
+
+    async Task NewProject()
+    {
+        // var parameters = new ModalParameters() { { nameof(DonationDetailModal.DonationDetail), new DonationDetail { DonationId = Donation!.Id } } };
+        // var modal = Modal.Show<DonationDetailModal>("New Task", parameters, new ModalOptions { DisableBackgroundCancel = false, Size = ModalSize.Large });
+        // var result = await modal.Result;
+        // if (!result.Cancelled)
+        // {
+        //     ToastSrv.ShowSuccess($"A new donation has added.");
+        //     await Refresh();
+        // }
+    }
+
+    async Task Update(ViewDonationDetail detail)
+    {
+        // var parameters = new ModalParameters() { { nameof(DonationDetailModal.DonationDetail), new DonationDetail { Id = detail.Id } } };
+        // var modal = Modal.Show<DonationDetailModal>("Update Task", parameters, new ModalOptions { DisableBackgroundCancel = false, Size = ModalSize.Large, });
+        // var result = await modal.Result;
+        // if (!result.Cancelled)
+        // {
+        //     if (result.Data?.ToString() == "NotFound")
+        //         ToastSrv.ShowInfo("This donation is not found.");
+
+        //     ToastSrv.ShowSuccess($"This donation has updated.");
+        //     await Refresh();
+        // }
+    }
+
+    async Task DisActive(ViewDonationDetail detail) => await UserActive(detail, false);
+    async Task Active(ViewDonationDetail detail) => await UserActive(detail, true);
+
+    async Task UserActive(ViewDonationDetail detail, bool state)
+    {
+        using var db = await ContextFactory.CreateDbContextAsync();
+        var donationInDb = await db.Tasks.FirstOrDefaultAsync(x => x.Id == detail.Id);
+        if (donationInDb == null)
+            ToastSrv.ShowInfo("This donation is not found.");
+        else
+        {
+            donationInDb.Active = state;
+            db.Tasks.Update(donationInDb);
+            await db.SaveChangesAsync();
+            ToastSrv.ShowSuccess($"This donation has {(state ? "activated" : "disactivated")}.");
+        }
+
+        await Refresh();
+    }
+
+    async Task OnStateChanged()
+    {
+        showDisactive = !showDisactive;
+        await DG.Reload();
+    }
+}
