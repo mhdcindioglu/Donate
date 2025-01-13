@@ -1,32 +1,33 @@
 ﻿@using Donate.Data.Entities
 @using Microsoft.AspNetCore.Identity
 @using System.Diagnostics.CodeAnalysis
-@inherits InputSelect<int>
+@inherits InputSelect<DonationItem>
 
-<InputSelect TValue="int" Value="@Value" ValueExpression="@(() => Value)" ValueChanged="OnValueChanged" class="@(IsValid ? "form-select valid" : "form-select invalid")">
-@*     @foreach (var donation in Donations.OrderBy(x => x.77))
+<InputSelect TValue="DonationItem" Value="@Value" ValueExpression="@(() => Value)" ValueChanged="ItemSelected" class="@(IsValid ? "form-select valid" : "form-select invalid")">
+    @foreach (var item in Items)
     {
-        <option value="@(donation.Id)">@donation.Donor</option>
+        <option value="@(item.Id)">@item.Details</option>
     }
- *@</InputSelect>
+</InputSelect>
 @code {
-    Donation[] Donations = [];
+    [Parameter] public DonationItem? SelectedItem { get; set; }
+    [Parameter] public DonationItem[] Items { get; set; } = [];
+    [Parameter] public EventCallback<DonationItem> OnItemSelected { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        using var db = await ContextFactory.CreateDbContextAsync();
-        Donations = await db.Donations.Where(x => x.Active == true).ToArrayAsync();
-        
-        if (Value == 0)
-            await OnValueChanged(Donations.FirstOrDefault()?.Id ?? 0);
+        if (SelectedItem == null && Items.Any())
+        {
+            await ItemSelected(Items.First());
+        }
     }
 
     private bool IsValid => !EditContext.GetValidationMessages(FieldIdentifier).Any();
 
-    async Task OnValueChanged(int value)
+    async Task ItemSelected(DonationItem item)
     {
-        Value = value;
-        await ValueChanged.InvokeAsync(value);
+        SelectedItem = item;
+        await OnItemSelected.InvokeAsync(item);
         EditContext.NotifyFieldChanged(FieldIdentifier);
     }
 }

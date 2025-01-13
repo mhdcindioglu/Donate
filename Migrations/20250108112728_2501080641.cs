@@ -121,8 +121,35 @@ namespace Donate.Migrations
                 """);
 
             migrationBuilder.Sql("""
-                DROP FUNCTION IF EXISTS public.delete_rejected_applications();
+                DROP VIEW IF EXISTS public."ViewDonations";
+                
+                CREATE OR REPLACE VIEW public."ViewDonations"
+                 AS
+                 SELECT d."Id",
+                    d."DonorId",
+                    d."DonationDate",
+                    d."Notes",
+                    ( SELECT count(dt."Id") AS count
+                           FROM "DonationDetails" dt) AS "Rows",
+                    ( SELECT sum(dt."Qty") AS sum
+                           FROM "DonationDetails" dt) AS "Qty",
+                    sum(dd."Qty"::numeric * di."Price") AS "Total",
+                	d."Active",
+                    (SELECT u."Name" FROM public."Users" u where u."Id" = d."DonorId") AS "Donor"
+                     JOIN "DonationDetails" dd ON dd."DonationId" = d."Id"
+                     JOIN "DonationItems" di ON di."Id" = dd."DonationItemId"
+                  GROUP BY d."Id", d."DonorId", d."DonationDate", d."Notes", d."Active";
 
+                ALTER TABLE public."ViewDonations"
+                    OWNER TO postgres;
+                """);
+
+            migrationBuilder.Sql("""
+
+                DROP TRIGGER IF EXISTS trigger_delete_rejected_applications ON public."TaskApplications";
+                
+                DROP FUNCTION IF EXISTS public.delete_rejected_applications();
+                
                 CREATE OR REPLACE FUNCTION public.delete_rejected_applications()
                     RETURNS trigger
                     LANGUAGE 'plpgsql'
@@ -144,8 +171,6 @@ namespace Donate.Migrations
 
 
             migrationBuilder.Sql("""
-                DROP TRIGGER IF EXISTS trigger_delete_rejected_applications ON public."TaskApplications";
-
                 CREATE OR REPLACE TRIGGER trigger_delete_rejected_applications
                     AFTER UPDATE OF "Status"
                     ON public."TaskApplications"

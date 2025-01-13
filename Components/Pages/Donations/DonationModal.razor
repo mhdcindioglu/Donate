@@ -1,4 +1,5 @@
-﻿@using Donate.Components.Pages.Users
+﻿@using Donate.Components.Pages.Projects
+@using Donate.Components.Pages.Users
 @using Donate.Data.Models
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
@@ -6,45 +7,63 @@
 @using System.Text.Json
 @using System.Text
 @using System.Text.Encodings.Web
+@using System.Security.Claims
 @inject NavigationManager NavigationManager
 
 <EditForm Model="_Donation" OnvalidSubmit="OnSave">
     <DataAnnotationsValidator />
     <FormValidation @ref="FormValidation" />
 
-    <div class="row mb-3">
-        <div class="col-12 col-md-6">
-            <label for="Input.Organization" class="mb-2 text-muted">Organization</label>
-            <SelectOrganization @bind-Value="_Donation.OrganizationId" ID="Input.Organization" />
-            <ValidationMessage For="@(() => _Donation.OrganizationId)"/>
-        </div>
-
-        <div class="col-12 col-md-6">
-            <label for="Input.Title" class="mb-2 text-muted">Title</label>
-            <InputText @bind-Value="_Donation.Title" id="Input.Title" class="form-control" aria-required="true" placeholder="Food Drive" autofocus />
-            <ValidationMessage For="() => _Donation.Title" />
-        </div>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-12 col-md-6">
-            <label for="Input.StartDate" class="mb-2 text-muted">Start Date</label>
-            <InputDate @bind-Value="_Donation.StartDate" id="Input.StartDate" class="form-control" aria-required="true" @onchange="OnStartDateChanged" />
-            <ValidationMessage For="() => _Donation.StartDate" />
-        </div>
-
-        <div class="col-12 col-md-6">
-            <label for="Input.EndDate" class="mb-2 text-muted">End Date</label>
-            <InputDate @bind-Value="_Donation.EndDate" id="Input.EndDate" class="form-control" aria-required="true" @onchange="OnEndDateChanged" />
-            <ValidationMessage For="() => _Donation.EndDate" />
-        </div>
-    </div>
-
     <div class="mb-3">
-        <label for="Input.Description" class="mb-2 text-muted">Description</label>
-        <InputTextArea @bind-Value="_Donation.Description" id="Input.Description" class="form-control" placeholder="Description here..." rows="5" />
-        <ValidationMessage For="() => _Donation.Description" />
+        <label for="Input.Donor" class="mb-2 text-muted">Donor</label>
+        <AuthorizeView Roles="Admin" Context="userContext">
+            <Authorized>
+                <SelectDonor Value="_Donation.DonorId" ValueExpression="@(() => _Donation.DonorId)" ValueChanged="OnDonorChanged" />
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Roles="Donor" Context="userContext">
+            <Authorized>
+                <input type="text" value="@(_Donation.Donor?.Name)" disabled class="form-control" />
+            </Authorized>
+        </AuthorizeView>
+        <ValidationMessage For="() => _Donation.DonorId" />
     </div>
+    <div class="mb-3">
+        <label for="Input.Notes" class="mb-2 text-muted">Notes</label>
+        <InputTextArea @bind-Value="_Donation.Notes" id="Input.Notes" class="form-control" placeholder="Notes here..." rows="3" />
+        <ValidationMessage For="() => _Donation.Notes" />
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Project</th>
+                <th>Item</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (_Donation.Details.Any())
+            {
+                foreach (var item in _Donation.Details)
+                {
+                    <tr>
+                        <th><SelectProject Value="@item.ProjectId" ValueExpression="@(() => item.ProjectId)" ValueChanged="@((id) => OnProjectChanged(item, id))" /></th>
+                        <th><SelectDonationItem Items="@Items" OnItemSelected="OnItemSelected" /></th>
+                        <th>@($"{item.DonationItem?.Price:C2}")</th>
+                        <th>@($"{item.Qty:N}")</th>
+                        <th>@($"{((item.DonationItem?.Price ?? 0) * item.Qty):C2}")</th>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="100"><div class="text-center text-muted">No donation items</div></td></tr>
+            }
+        </tbody>
+    </table>
 
     <div class="align-items-center d-flex">
         <button type="submit" class="btn btn-primary mx-auto px-5">@(_Donation.Id == 0 ? "Add" : "Update")</button>
@@ -56,12 +75,22 @@
     [CascadingParameter] public BlazoredModalInstance ModalInstance { get; set; } = default!;
     private Donation _Donation = new();
     FormValidation FormValidation = default!;
+    ClaimsPrincipal? User;
+    DonationItem[] Items = [];
 
     protected override async void OnInitialized()
     {
-        if (Donation.Id > 0)
+        var auth = await Auth.GetAuthenticationStateAsync();
+        User = auth.User;
+
+        using var db = await ContextFactory.CreateDbContextAsync();
+        if (Donation.Id == 0)
         {
-            using var db = await ContextFactory.CreateDbContextAsync();
+            Donation.Donor = await db.Users.FirstOrDefaultAsync(x => x.Id == User.Id());
+            Donation.DonorId = Donation.Donor?.Id ?? 0;
+        }
+        else
+        {
             var donation = await db.Projects.FirstOrDefaultAsync(x => x.Id == Donation.Id);
             if (donation == null)
             {
@@ -90,36 +119,25 @@
         {
             if (_Donation.Id == 0)
             {
-                var newProject = new Donation
-                    {
-                        Title = _Donation.Title.Trim(),
-                        Description = _Donation.Description.Trim(),
-                        StartDate = _Donation.StartDate.HasValue ? _Donation.StartDate.Value.ToUniversalTime() : null,
-                        EndDate = _Donation.EndDate.HasValue ? _Donation.EndDate.Value.ToUniversalTime() : null,
-                        OrganizationId = _Donation.OrganizationId,
-                    };
-                await db.Projects.AddAsync(newProject);
+                var newDonation = new Donation { Notes = _Donation.Notes?.Trim(), };
+                await db.Donations.AddAsync(newDonation);
                 await db.SaveChangesAsync();
 
                 await ModalInstance.CloseAsync(ModalResult.Ok());
             }
             else
             {
-                var projectInDb = await db.Projects.FirstOrDefaultAsync(x => x.Id == _Donation.Id);
-                if (projectInDb == null)
+                var donationInDb = await db.Donations.FirstOrDefaultAsync(x => x.Id == _Donation.Id);
+                if (donationInDb == null)
                 {
                     await ModalInstance.CloseAsync(ModalResult.Cancel("NotFound"));
                     return;
                 }
                 else
                 {
-                    projectInDb.Title = _Donation.Title.Trim();
-                    projectInDb.Description = _Donation.Description.Trim();
-                    projectInDb.StartDate = _Donation.StartDate.HasValue ? _Donation.StartDate.Value.ToUniversalTime() : null;
-                    projectInDb.EndDate = _Donation.EndDate.HasValue ? _Donation.EndDate.Value.ToUniversalTime() : null;
-                    projectInDb.OrganizationId = _Donation.OrganizationId;
+                    donationInDb.Notes = _Donation.Notes?.Trim();
 
-                    db.Projects.Update(projectInDb);
+                    db.Donations.Update(donationInDb);
                     await db.SaveChangesAsync();
 
                     await ModalInstance.CloseAsync(ModalResult.Ok());
@@ -132,17 +150,23 @@
         }
     }
 
-    private void OnStartDateChanged(ChangeEventArgs e)
+    async Task OnDonorChanged(int id)
     {
-        var startDate = DateTime.Parse(e.Value.ToString());
-        if (_Donation.EndDate.HasValue && startDate > _Donation.EndDate.Value)
-            _Donation.EndDate = startDate;
+        using var db = await ContextFactory.CreateDbContextAsync();
+        _Donation.DonorId = id;
+        _Donation.Donor = await db.Users.FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    private void OnEndDateChanged(ChangeEventArgs e)
+    async Task OnProjectChanged(DonationDetail item, int id)
     {
-        var endDate = DateTime.Parse(e.Value.ToString());
-        if (_Donation.StartDate.HasValue && endDate < _Donation.StartDate.Value)
-            _Donation.StartDate = endDate;
+        using var db = await ContextFactory.CreateDbContextAsync();
+        item.ProjectId = id;
+        item.Project = await db.Projects.FirstOrDefaultAsync(x => x.Id == id);
+        Items = await db.DonationItems.Where(x => x.ProjectId == id).ToArrayAsync();
+    }
+
+    async Task OnItemSelected()
+    {
+
     }
 }

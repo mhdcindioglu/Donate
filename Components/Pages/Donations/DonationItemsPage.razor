@@ -6,7 +6,7 @@
 @using System.Linq.Dynamic.Core
 @inject IJSRuntime JS
 
-@attribute [Authorize(Roles = "Admin")]
+@attribute [Authorize(Roles = "Admin, Donor, Organization")]
 
 <div class="header mb-3">
     <h1 class="header-title">Donation Items list</h1>

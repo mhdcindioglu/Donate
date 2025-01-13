@@ -9,7 +9,6 @@
 
 	<ItemGroup>
 	  <Content Remove="Components\Pages\Donations\DonationDetailModal.razor" />
-	  <Content Remove="Components\Pages\Donations\DonationModal.razor" />
 	</ItemGroup>
 
 	<ItemGroup>

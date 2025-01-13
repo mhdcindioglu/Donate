@@ -3,6 +3,7 @@ using System;
 using Donate.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Donate.Migrations
 {
     [DbContext(typeof(DonateDbContext))]
-    partial class DonateDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250112060940_2501120909")]
+    partial class _2501120909
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -283,7 +286,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("DonorId");
 
-                    b.ToTable("Donations", (string)null);
+                    b.ToTable("Donations");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.DonationDetail", b =>
@@ -316,7 +319,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("DonationItemId");
 
-                    b.ToTable("DonationDetails", (string)null);
+                    b.ToTable("DonationDetails");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.DonationItem", b =>
@@ -350,7 +353,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("DonationItems", (string)null);
+                    b.ToTable("DonationItems");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.DonationItemType", b =>
@@ -375,7 +378,7 @@ namespace Donate.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DonationItemTypes", (string)null);
+                    b.ToTable("DonationItemTypes");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.Project", b =>
@@ -420,7 +423,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("OrganizationId");
 
-                    b.ToTable("Projects", (string)null);
+                    b.ToTable("Projects");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.ProjectTask", b =>
@@ -454,7 +457,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Tasks", (string)null);
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.TaskApplication", b =>
@@ -483,7 +486,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("VolunteerId");
 
-                    b.ToTable("TaskApplications", (string)null);
+                    b.ToTable("TaskApplications");
                 });
 
             modelBuilder.Entity("Donate.Data.Entities.ViewDonation", b =>
@@ -753,7 +756,7 @@ namespace Donate.Migrations
 
                     b.HasIndex("ProjectTaskId");
 
-                    b.ToTable("VolunteerProjectTasks", (string)null);
+                    b.ToTable("VolunteerProjectTasks");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
